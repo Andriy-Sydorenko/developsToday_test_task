@@ -1,12 +1,13 @@
 import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from app.schemas.base import BaseValidatedModel
 
 
 class ProjectPlaceImport(BaseValidatedModel):
-    external_id: int = Field(..., ge=1)
+    # Art Institute "places" IDs can be negative (see /api/v1/places list response).
+    external_id: int
     notes: str | None = None
 
 

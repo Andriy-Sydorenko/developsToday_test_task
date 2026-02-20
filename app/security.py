@@ -20,7 +20,7 @@ def hash_password(password: str) -> str:
 def verify_password(password_hash: str, password: str) -> bool:
     try:
         return pwd_hasher.verify(password_hash, password)
-    except VerifyMismatchError, VerificationError, InvalidHashError:
+    except (VerifyMismatchError, VerificationError, InvalidHashError):
         return False
 
 
@@ -53,6 +53,6 @@ def get_current_user_id(token: str = Depends(get_access_token)) -> str:
         user_id: str = payload["sub"]
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired") from None
-    except jwt.InvalidTokenError, KeyError:
+    except (jwt.InvalidTokenError, KeyError):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") from None
     return user_id

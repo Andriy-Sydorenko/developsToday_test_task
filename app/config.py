@@ -17,6 +17,9 @@ class Settings(BaseSettings):
 
     artic_api_base_url: str = "https://api.artic.edu/api/v1"
     artic_api_timeout_seconds: float = 10.0
+    artic_cache_enabled: bool = True
+    artic_cache_ttl_seconds: int = 300
+    artic_cache_max_entries: int = 1024
 
     jwt_secret: str = "CHANGE-ME-IN-PRODUCTION"
     jwt_algorithm: str = "HS256"

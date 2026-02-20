@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import Select, func, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.project_place import ProjectPlace
@@ -10,28 +10,33 @@ class ProjectPlaceRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    def _base_query(self) -> Select:
-        return select(ProjectPlace)
-
     async def get_by_id(self, place_id: str) -> ProjectPlace | None:
-        result = await self.session.execute(self._base_query().where(ProjectPlace.id == UUID(place_id)))
+        result = await self.session.execute(select(ProjectPlace).where(ProjectPlace.id == UUID(place_id)))
         return result.scalars().first()
 
     async def get_for_project_by_id(self, project_id: str, place_id: str) -> ProjectPlace | None:
         result = await self.session.execute(
-            self._base_query().where(
+            select(ProjectPlace).where(
                 ProjectPlace.project_id == UUID(project_id),
                 ProjectPlace.id == UUID(place_id),
             ),
         )
         return result.scalars().first()
 
-    async def list_for_project(self, project_id: str) -> list[ProjectPlace]:
-        result = await self.session.execute(
-            self._base_query()
-            .where(ProjectPlace.project_id == UUID(project_id))
-            .order_by(ProjectPlace.created_at.asc()),
-        )
+    async def list_for_project(
+        self,
+        project_id: str,
+        *,
+        limit: int,
+        offset: int,
+        visited: bool | None = None,
+    ) -> list[ProjectPlace]:
+        query = select(ProjectPlace).where(ProjectPlace.project_id == UUID(project_id))
+        if visited is not None:
+            query = query.where(ProjectPlace.visited.is_(visited))
+        query = query.order_by(ProjectPlace.created_at.asc()).limit(limit).offset(offset)
+
+        result = await self.session.execute(query)
         return list(result.scalars().all())
 
     async def count_for_project(self, project_id: str) -> int:

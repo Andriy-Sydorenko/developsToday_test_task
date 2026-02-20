@@ -59,6 +59,17 @@ uvicorn main:app --reload
 API base path: `http://localhost:8000/api/v1`  
 Swagger/OpenAPI: `http://localhost:8000/docs`
 
+### Docker
+
+Build and run locally:
+
+```bash
+docker compose up --build
+```
+
+The compose file persists SQLite data in a named volume and sets:
+- `DATABASE_URL=sqlite+aiosqlite:///./data/app.db`
+
 ### Postman collection
 
 - [DevelopsToday test task – Postman request](https://www.postman.com/joint-operations-observer-21402566/developstoday-test-task/request/28806303-7ecb2b90-ebf4-46dd-9d55-6b0381f4f473)
@@ -69,3 +80,13 @@ It includes:
 - Project places (`/projects/{project_id}/places`)
 
 The Login request automatically extracts the `token` cookie and stores it as a collection variable, then uses it as `Authorization: Bearer {{token}}`.
+
+### Third-party API cache (bonus)
+
+The Art Institute API client caches successful `get_place(external_id)` responses in-memory (TTL + max size).
+
+- `ARTIC_CACHE_ENABLED` (default `true`)
+- `ARTIC_CACHE_TTL_SECONDS` (default `300`)
+- `ARTIC_CACHE_MAX_ENTRIES` (default `1024`)
+
+Note: Art Institute `places` IDs may be **negative** (example: `-2147472167`), so `external_id` is treated as a plain integer.

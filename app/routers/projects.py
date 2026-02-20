@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -26,7 +26,7 @@ async def create_project(
 ) -> TravelProjectWithPlacesPublic:
     service = TravelProjectService(db)
     project = await service.create_project(user_id, payload)
-    places = await service.list_places(user_id, str(project.id))
+    places = await service.list_places(user_id, str(project.id), limit=100, offset=0)
 
     return TravelProjectWithPlacesPublic.model_validate(
         {
@@ -40,9 +40,13 @@ async def create_project(
 async def list_projects(
     user_id: Annotated[str, Depends(get_current_user_id)],
     db: Annotated[AsyncSession, Depends(get_db)],
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    is_completed: bool | None = None,
+    q: str | None = None,
 ) -> list[TravelProjectPublic]:
     service = TravelProjectService(db)
-    projects = await service.list_projects(user_id)
+    projects = await service.list_projects(user_id, limit=limit, offset=offset, is_completed=is_completed, q=q)
     return [TravelProjectPublic.model_validate(p) for p in projects]
 
 
@@ -54,7 +58,7 @@ async def get_project(
 ) -> TravelProjectWithPlacesPublic:
     service = TravelProjectService(db)
     project = await service.get_project(user_id, project_id)
-    places = await service.list_places(user_id, project_id)
+    places = await service.list_places(user_id, project_id, limit=100, offset=0)
 
     return TravelProjectWithPlacesPublic.model_validate(
         {
@@ -90,9 +94,12 @@ async def list_places(
     project_id: str,
     user_id: Annotated[str, Depends(get_current_user_id)],
     db: Annotated[AsyncSession, Depends(get_db)],
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
+    visited: bool | None = None,
 ) -> list[ProjectPlacePublic]:
     service = TravelProjectService(db)
-    places = await service.list_places(user_id, project_id)
+    places = await service.list_places(user_id, project_id, limit=limit, offset=offset, visited=visited)
     return [ProjectPlacePublic.model_validate(p) for p in places]
 
 

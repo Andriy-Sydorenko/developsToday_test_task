@@ -6,6 +6,14 @@ from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.clients.artic.client import ArtInstituteClient
+from app.clients.artic.errors import (
+    ArtInstituteBadResponseError,
+    ArtInstituteClientError,
+    ArtInstituteNotFoundError,
+    ArtInstituteRateLimitError,
+    ArtInstituteTimeoutError,
+)
 from app.constants import MAX_PLACES_PER_PROJECT
 from app.models.project_place import ProjectPlace
 from app.models.travel_project import TravelProject
@@ -13,7 +21,6 @@ from app.repositories.project_place import ProjectPlaceRepository
 from app.repositories.travel_project import TravelProjectRepository
 from app.schemas.project_place import ProjectPlaceImport, ProjectPlaceUpdate
 from app.schemas.travel_project import TravelProjectCreate, TravelProjectUpdate
-from app.services.artic import ArtInstituteClient
 
 
 class TravelProjectService:
@@ -23,8 +30,22 @@ class TravelProjectService:
         self.place_repo = ProjectPlaceRepository(db)
         self.artic = ArtInstituteClient()
 
-    async def list_projects(self, user_id: str) -> list[TravelProject]:
-        return await self.project_repo.list_for_user(user_id)
+    async def list_projects(
+        self,
+        user_id: str,
+        *,
+        limit: int,
+        offset: int,
+        is_completed: bool | None = None,
+        q: str | None = None,
+    ) -> list[TravelProject]:
+        return await self.project_repo.list_for_user(
+            user_id,
+            limit=limit,
+            offset=offset,
+            is_completed=is_completed,
+            q=q,
+        )
 
     async def get_project(self, user_id: str, project_id: str) -> TravelProject:
         project = await self.project_repo.get_for_user_by_id(user_id, project_id)
@@ -55,11 +76,11 @@ class TravelProjectService:
         await self.project_repo.create(project)
 
         for place_payload in payload.places:
-            artwork = await self.artic.get_artwork(place_payload.external_id)
+            place_from_api = await self._get_place_or_http_error(place_payload.external_id)
             place = ProjectPlace(
                 project_id=project.id,
-                external_id=artwork.id,
-                title=artwork.title,
+                external_id=place_from_api.id,
+                title=place_from_api.title,
                 notes=place_payload.notes,
             )
             try:
@@ -88,9 +109,17 @@ class TravelProjectService:
             )
         await self.project_repo.delete(project)
 
-    async def list_places(self, user_id: str, project_id: str) -> list[ProjectPlace]:
+    async def list_places(
+        self,
+        user_id: str,
+        project_id: str,
+        *,
+        limit: int,
+        offset: int,
+        visited: bool | None = None,
+    ) -> list[ProjectPlace]:
         await self.get_project(user_id, project_id)
-        return await self.place_repo.list_for_project(project_id)
+        return await self.place_repo.list_for_project(project_id, limit=limit, offset=offset, visited=visited)
 
     async def get_place(self, user_id: str, project_id: str, place_id: str) -> ProjectPlace:
         await self.get_project(user_id, project_id)
@@ -112,11 +141,11 @@ class TravelProjectService:
         if await self.place_repo.exists_external_in_project(project_id, payload.external_id):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Place already added to project")
 
-        artwork = await self.artic.get_artwork(payload.external_id)
+        place_from_api = await self._get_place_or_http_error(payload.external_id)
         place = ProjectPlace(
             project_id=project.id,
-            external_id=artwork.id,
-            title=artwork.title,
+            external_id=place_from_api.id,
+            title=place_from_api.title,
             notes=payload.notes,
         )
         created = await self.place_repo.create(place)
@@ -150,15 +179,46 @@ class TravelProjectService:
         total = await self.place_repo.count_for_project(project_id)
         visited = await self.place_repo.count_visited_for_project(project_id)
 
-        if total > 0 and visited == total:
-            if not project.is_completed:
-                project.mark_completed()
-                await self.project_repo.update(
-                    project, {"is_completed": project.is_completed, "completed_at": project.completed_at}
-                )
-        else:
-            if project.is_completed:
-                project.mark_incomplete()
-                await self.project_repo.update(
-                    project, {"is_completed": project.is_completed, "completed_at": project.completed_at}
-                )
+        if total > 0 and visited == total and not project.is_completed:
+            project.mark_completed()
+            await self.project_repo.update(
+                project,
+                {"is_completed": project.is_completed, "completed_at": project.completed_at},
+            )
+            return
+
+        if project.is_completed:
+            project.mark_incomplete()
+            await self.project_repo.update(
+                project,
+                {"is_completed": project.is_completed, "completed_at": project.completed_at},
+            )
+
+    async def _get_place_or_http_error(self, external_id: int):
+        try:
+            return await self.artic.get_place(external_id)
+        except ArtInstituteNotFoundError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Place not found in Art Institute API",
+            ) from None
+        except ArtInstituteRateLimitError:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Third-party API rate limited",
+            ) from None
+        except ArtInstituteTimeoutError:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Third-party API timeout",
+            ) from None
+        except ArtInstituteBadResponseError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=str(exc),
+            ) from None
+        except ArtInstituteClientError:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Third-party API error",
+            ) from None
