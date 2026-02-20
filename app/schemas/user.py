@@ -1,4 +1,5 @@
 import datetime
+from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field
 
@@ -6,7 +7,7 @@ from app.schemas.base import BaseValidatedModel
 
 
 class UserPublic(BaseModel):
-    id: str
+    id: UUID
     email: EmailStr
     name: str | None = None
     created_at: datetime.datetime

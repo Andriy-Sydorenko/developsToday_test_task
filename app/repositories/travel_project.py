@@ -10,15 +10,21 @@ class TravelProjectRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def get_by_id(self, project_id: str) -> TravelProject | None:
-        result = await self.session.execute(select(TravelProject).where(TravelProject.id == UUID(project_id)))
+    @staticmethod
+    def _as_uuid(value: str | UUID) -> UUID:
+        return value if isinstance(value, UUID) else UUID(value)
+
+    async def get_by_id(self, project_id: str | UUID) -> TravelProject | None:
+        result = await self.session.execute(
+            select(TravelProject).where(TravelProject.id == self._as_uuid(project_id)),
+        )
         return result.scalars().first()
 
     async def get_for_user_by_id(self, user_id: str, project_id: str) -> TravelProject | None:
         result = await self.session.execute(
             select(TravelProject).where(
                 TravelProject.user_id == UUID(user_id),
-                TravelProject.id == UUID(project_id),
+                TravelProject.id == self._as_uuid(project_id),
             ),
         )
         return result.scalars().first()
@@ -59,4 +65,4 @@ class TravelProjectRepository:
         await self.session.delete(project)
 
     async def delete_by_id(self, project_id: str) -> None:
-        await self.session.execute(delete(TravelProject).where(TravelProject.id == UUID(project_id)))
+        await self.session.execute(delete(TravelProject).where(TravelProject.id == self._as_uuid(project_id)))

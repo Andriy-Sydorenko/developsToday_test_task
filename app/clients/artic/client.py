@@ -14,7 +14,15 @@ from app.clients.artic.errors import (
     ArtInstituteRateLimitError,
     ArtInstituteTimeoutError,
 )
-from app.clients.artic.models import ArticPlace, GetPlaceRequest, PlaceResponse
+from app.clients.artic.schemas import (
+    ArticPlace,
+    GetPlaceRequest,
+    ListPlacesRequest,
+    PlaceResponse,
+    PlacesResponse,
+    PlacesSearchResponse,
+    SearchPlacesRequest,
+)
 from app.config import settings
 
 
@@ -58,6 +66,22 @@ class ArtInstituteClient:
         if settings.artic_cache_enabled:
             await self._cache_set(external_id, place)
         return place
+
+    async def list_places(self, *, limit: int = 12, page: int = 1) -> PlacesResponse:
+        request = ListPlacesRequest(limit=limit, page=page)
+        response = await self._request("GET", request.path, params=request.query_params())
+        try:
+            return PlacesResponse.model_validate(response.json())
+        except Exception as exc:
+            raise ArtInstituteBadResponseError("Invalid response format from Art Institute API") from exc
+
+    async def search_places(self, *, q: str, limit: int = 12, page: int = 1) -> PlacesSearchResponse:
+        request = SearchPlacesRequest(q=q, limit=limit, page=page)
+        response = await self._request("GET", request.path, params=request.query_params())
+        try:
+            return PlacesSearchResponse.model_validate(response.json())
+        except Exception as exc:
+            raise ArtInstituteBadResponseError("Invalid response format from Art Institute API") from exc
 
     async def _request(
         self,

@@ -10,15 +10,19 @@ class ProjectPlaceRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def get_by_id(self, place_id: str) -> ProjectPlace | None:
-        result = await self.session.execute(select(ProjectPlace).where(ProjectPlace.id == UUID(place_id)))
+    @staticmethod
+    def _as_uuid(value: str | UUID) -> UUID:
+        return value if isinstance(value, UUID) else UUID(value)
+
+    async def get_by_id(self, place_id: str | UUID) -> ProjectPlace | None:
+        result = await self.session.execute(select(ProjectPlace).where(ProjectPlace.id == self._as_uuid(place_id)))
         return result.scalars().first()
 
     async def get_for_project_by_id(self, project_id: str, place_id: str) -> ProjectPlace | None:
         result = await self.session.execute(
             select(ProjectPlace).where(
-                ProjectPlace.project_id == UUID(project_id),
-                ProjectPlace.id == UUID(place_id),
+                ProjectPlace.project_id == self._as_uuid(project_id),
+                ProjectPlace.id == self._as_uuid(place_id),
             ),
         )
         return result.scalars().first()
@@ -31,7 +35,7 @@ class ProjectPlaceRepository:
         offset: int,
         visited: bool | None = None,
     ) -> list[ProjectPlace]:
-        query = select(ProjectPlace).where(ProjectPlace.project_id == UUID(project_id))
+        query = select(ProjectPlace).where(ProjectPlace.project_id == self._as_uuid(project_id))
         if visited is not None:
             query = query.where(ProjectPlace.visited.is_(visited))
         query = query.order_by(ProjectPlace.created_at.asc()).limit(limit).offset(offset)
@@ -41,14 +45,14 @@ class ProjectPlaceRepository:
 
     async def count_for_project(self, project_id: str) -> int:
         result = await self.session.execute(
-            select(func.count(ProjectPlace.id)).where(ProjectPlace.project_id == UUID(project_id)),
+            select(func.count(ProjectPlace.id)).where(ProjectPlace.project_id == self._as_uuid(project_id)),
         )
         return int(result.scalar_one())
 
     async def count_visited_for_project(self, project_id: str) -> int:
         result = await self.session.execute(
             select(func.count(ProjectPlace.id)).where(
-                ProjectPlace.project_id == UUID(project_id),
+                ProjectPlace.project_id == self._as_uuid(project_id),
                 ProjectPlace.visited.is_(True),
             ),
         )
@@ -57,7 +61,7 @@ class ProjectPlaceRepository:
     async def any_visited_for_project(self, project_id: str) -> bool:
         result = await self.session.execute(
             select(func.count(ProjectPlace.id)).where(
-                ProjectPlace.project_id == UUID(project_id),
+                ProjectPlace.project_id == self._as_uuid(project_id),
                 ProjectPlace.visited.is_(True),
             ),
         )
@@ -66,7 +70,7 @@ class ProjectPlaceRepository:
     async def exists_external_in_project(self, project_id: str, external_id: int) -> bool:
         result = await self.session.execute(
             select(func.count(ProjectPlace.id)).where(
-                ProjectPlace.project_id == UUID(project_id),
+                ProjectPlace.project_id == self._as_uuid(project_id),
                 ProjectPlace.external_id == external_id,
             ),
         )

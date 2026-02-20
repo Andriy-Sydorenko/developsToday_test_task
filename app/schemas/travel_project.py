@@ -1,4 +1,5 @@
 import datetime
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
@@ -12,7 +13,7 @@ class TravelProjectCreate(BaseValidatedModel):
     description: str | None = None
     start_date: datetime.date | None = None
     places: list[ProjectPlaceImport] = Field(
-        ...,
+        default_factory=list,
         min_length=MIN_PLACES_PER_PROJECT,
         max_length=MAX_PLACES_PER_PROJECT,
     )
@@ -25,8 +26,8 @@ class TravelProjectUpdate(BaseValidatedModel):
 
 
 class TravelProjectPublic(BaseModel):
-    id: str
-    user_id: str
+    id: UUID
+    user_id: UUID
     name: str
     description: str | None = None
     start_date: datetime.date | None = None

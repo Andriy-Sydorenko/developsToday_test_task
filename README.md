@@ -59,6 +59,17 @@ uvicorn main:app --reload
 API base path: `http://localhost:8000/api/v1`  
 Swagger/OpenAPI: `http://localhost:8000/docs`
 
+### Getting `external_id` (places) inside this API
+
+Use our proxy endpoints (no auth required):
+
+- List places: `GET /api/v1/external/places?limit=12&page=1`
+- Search places: `GET /api/v1/external/places/search?q=Paris&limit=12&page=1`
+
+Pick `data[i].id` from the response and use it as `external_id` when creating a project or adding a place.
+
+You can now create a project **without places** (and add places later via `POST /api/v1/projects/{project_id}/places`).
+
 ### Docker
 
 Build and run locally:

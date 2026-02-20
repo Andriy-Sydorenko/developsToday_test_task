@@ -1,4 +1,5 @@
 import datetime
+from uuid import UUID
 
 from pydantic import BaseModel
 
@@ -17,8 +18,8 @@ class ProjectPlaceUpdate(BaseValidatedModel):
 
 
 class ProjectPlacePublic(BaseModel):
-    id: str
-    project_id: str
+    id: UUID
+    project_id: UUID
     external_id: int
     title: str | None = None
     notes: str | None = None

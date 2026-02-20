@@ -90,7 +90,7 @@ class TravelProjectService:
                     status_code=status.HTTP_400_BAD_REQUEST, detail="Place already added to project"
                 ) from None
 
-        await self._sync_project_completion(project.id)
+        await self._sync_project_completion(str(project.id))
         return project
 
     async def update_project(self, user_id: str, project_id: str, payload: TravelProjectUpdate) -> TravelProject:
