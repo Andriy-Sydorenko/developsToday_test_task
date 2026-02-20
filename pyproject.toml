@@ -5,9 +5,15 @@ description = "Python engineer test assessment"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    "aiosqlite>=0.22.1",
     "alembic>=1.18.4",
+    "argon2-cffi>=25.1.0",
     "fastapi>=0.129.0",
+    "greenlet>=3.3.1",
+    "pydantic-settings>=2.13.1",
+    "pyjwt>=2.11.0",
     "sqlalchemy>=2.0.46",
+    "uvicorn>=0.41.0",
 ]
 
 [dependency-groups]
@@ -15,3 +21,33 @@ dev = [
     "fastapi[standard]",
     "ruff>=0.15.2",
 ]
+
+[tool.ruff]
+line-length = 120
+target-version = "py314"
+
+exclude = [
+    "alembic/**",
+    "venv/**",
+]
+
+[tool.ruff.format]
+line-ending = "lf"  # ensures consistency across platforms
+
+[tool.ruff.lint]
+select = [
+    "F",    # Pyflakes
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "I",    # isort
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "SIM",  # flake8-simplify
+    "RUF",  # Ruff-specific
+    "TID"
+]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true
+lines-after-imports = 2
