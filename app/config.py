@@ -15,6 +15,9 @@ class Settings(BaseSettings):
 
     database_url: str = "sqlite+aiosqlite:///./app.db"
 
+    artic_api_base_url: str = "https://api.artic.edu/api/v1"
+    artic_api_timeout_seconds: float = 10.0
+
     jwt_secret: str = "CHANGE-ME-IN-PRODUCTION"
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 60 * 24 * 7

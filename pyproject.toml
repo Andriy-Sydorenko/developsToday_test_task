@@ -3,13 +3,14 @@ name = "travel-planner"
 version = "0.1.0"
 description = "Python engineer test assessment"
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.12"
 dependencies = [
     "aiosqlite>=0.22.1",
     "alembic>=1.18.4",
     "argon2-cffi>=25.1.0",
     "fastapi>=0.129.0",
     "greenlet>=3.3.1",
+    "httpx>=0.28.1",
     "pydantic-settings>=2.13.1",
     "pyjwt>=2.11.0",
     "sqlalchemy>=2.0.46",
@@ -24,7 +25,7 @@ dev = [
 
 [tool.ruff]
 line-length = 120
-target-version = "py314"
+target-version = "py312"
 
 exclude = [
     "alembic/**",
