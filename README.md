@@ -34,7 +34,7 @@ The app uses `pydantic-settings` and reads `.env` (optional). Common options:
 - **`ARTIC_API_TIMEOUT_SECONDS`**: defaults to `10.0`
 - **`IS_PRODUCTION`**: defaults to `false`
 
-Check out `.env.sample`
+Check out `.env.sample` for env examples
 
 ### Database migrations
 
