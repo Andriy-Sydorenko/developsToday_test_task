@@ -8,19 +8,13 @@ dependencies = [
     "aiosqlite>=0.22.1",
     "alembic>=1.18.4",
     "argon2-cffi>=25.1.0",
-    "email-validator>=2.3.0",
-    "fastapi>=0.129.0",
+    "fastapi[standard]>=0.129.0",
     "greenlet>=3.3.1",
     "httpx>=0.28.1",
     "pydantic-settings>=2.13.1",
     "pyjwt>=2.11.0",
     "sqlalchemy>=2.0.46",
     "uvicorn>=0.41.0",
-]
-
-[dependency-groups]
-dev = [
-    "fastapi[standard]",
     "ruff>=0.15.2",
 ]
 
@@ -53,6 +47,3 @@ select = [
 [tool.ruff.lint.isort]
 combine-as-imports = true
 lines-after-imports = 2
-
-[tool.setuptools]
-packages = ["app"]

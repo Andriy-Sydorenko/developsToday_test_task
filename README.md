@@ -15,18 +15,40 @@ FastAPI CRUD application for managing **travel projects** and **places** (valida
 
 ### Setup
 
-Create a virtual environment and install dependencies:
+Create a virtual environment and install dependencies.
+
+Using `uv` (dependency-only):
+
+```bash
+uv sync
+```
+
+Using Poetry (dependency-only):
+
+```bash
+poetry install --no-root
+```
+
+Using `pip`:
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -U pip
-pip install -e ".[dev]"
+pip install -r requirements.txt
 ```
 
 ### Configuration
 
-The app uses `pydantic-settings` and reads `.env` (optional). Common options:
+The app uses `pydantic-settings` and reads `.env` (required).
+
+Create it from the example:
+
+```bash
+  cp .env.example .env
+```
+
+Common options:
 
 - **`DATABASE_URL`**: defaults to `sqlite+aiosqlite:///./app.db`
 - **`JWT_SECRET`**: defaults to `CHANGE-ME-IN-PRODUCTION`
@@ -34,20 +56,20 @@ The app uses `pydantic-settings` and reads `.env` (optional). Common options:
 - **`ARTIC_API_TIMEOUT_SECONDS`**: defaults to `10.0`
 - **`IS_PRODUCTION`**: defaults to `false`
 
-Check out `.env.sample` for env examples
+See [`.env.example`](./.env.example) for the full list of env options.
 
 ### Database migrations
 
 Run Alembic migrations:
 
 ```bash
-alembic upgrade head
+  alembic upgrade head
 ```
 
 ### Run the API
 
 ```bash
-uvicorn main:app --reload
+  uvicorn main:app --reload
 ```
 
 API base path: `http://localhost:8000/api/v1`  
@@ -69,7 +91,7 @@ You can now create a project **without places** (and add places later via `POST 
 Build and run locally:
 
 ```bash
-docker compose up --build
+  docker compose -f docker/docker-compose.yml up --build
 ```
 
 The compose file persists SQLite data in a named volume and sets:

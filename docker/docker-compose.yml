@@ -1,9 +1,10 @@
 services:
   api:
     build:
-      context: .
+      context: ..
+      dockerfile: docker/Dockerfile
     env_file:
-      - .env
+      - ../.env
     ports:
       - "${PORT:-8000}:${PORT:-8000}"
     volumes:
