@@ -30,3 +30,15 @@ class UserService:
         if not user or not verify_password(user.password_hash, password):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect email or password")
         return user
+
+    async def update_name(self, user_id: str, name: str) -> User:
+        user = await self.get_by_id(user_id)
+        return await self.user_repo.update(user, {"name": name})
+
+    async def update_password(self, user_id: str, current_password: str, new_password: str) -> None:
+        user = await self.get_by_id(user_id)
+        if not verify_password(user.password_hash, current_password):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect")
+        if current_password == new_password:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="New password must be different")
+        await self.user_repo.update(user, {"password_hash": hash_password(new_password)})

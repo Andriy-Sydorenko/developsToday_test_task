@@ -11,7 +11,7 @@ from app.schemas.auth import (
     LoginRequest,
     RegisterRequest,
 )
-from app.security import create_access_token, get_current_user_id
+from app.security import create_access_token
 from app.services.user import UserService
 
 
@@ -55,7 +55,6 @@ async def login(
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(response: Response) -> None:
-    response.delete_cookie(key=JWT_TOKEN_COOKIE_KEY, path="/")
     response.delete_cookie(
         key=JWT_TOKEN_COOKIE_KEY,
         httponly=True,
@@ -63,12 +62,3 @@ async def logout(response: Response) -> None:
         samesite="lax",
         path="/",
     )
-
-
-@router.get("/me", response_model=AuthUserResponse)
-async def me(
-    user_id: Annotated[str, Depends(get_current_user_id)],
-    db: Annotated[AsyncSession, Depends(get_db)],
-) -> AuthUserResponse:
-    user = await UserService(db).get_by_id(user_id)
-    return AuthUserResponse.model_validate(user)

@@ -34,13 +34,7 @@ The app uses `pydantic-settings` and reads `.env` (optional). Common options:
 - **`ARTIC_API_TIMEOUT_SECONDS`**: defaults to `10.0`
 - **`IS_PRODUCTION`**: defaults to `false`
 
-Example `.env`:
-
-```bash
-DATABASE_URL=sqlite+aiosqlite:///./app.db
-JWT_SECRET=dev-secret
-IS_PRODUCTION=false
-```
+Check out `.env.sample`
 
 ### Database migrations
 
@@ -83,12 +77,17 @@ The compose file persists SQLite data in a named volume and sets:
 
 ### Postman collection
 
-- [DevelopsToday test task – Postman request](https://www.postman.com/joint-operations-observer-21402566/developstoday-test-task/request/28806303-7ecb2b90-ebf4-46dd-9d55-6b0381f4f473)
+- **Public Postman collection**: [DevelopsToday test task – Travel Planner API](https://www.postman.com/joint-operations-observer-21402566/developstoday-test-task/collection/28806303-3853d7b5-bbcf-45ec-b2dd-dec97d497746)
+- **Exported collection JSON (in this repo)**: [`Travel-Planner-API.postman_collection.json`](./Travel-Planner-API.postman_collection.json) (import it into Postman)
+
+The collection is parameterized via `rootUrl` / `baseUrl` variables (defaults to `http://localhost:8000`).
 
 It includes:
 - Auth (`/auth/register`, `/auth/login`, `/auth/me`, `/auth/logout`)
+- Users (`/users/me`, update name, update password)
 - Projects CRUD (`/projects`)
 - Project places (`/projects/{project_id}/places`)
+- External places proxy (`/external/places`) to discover `external_id`
 
 The Login request automatically extracts the `token` cookie and stores it as a collection variable, then uses it as `Authorization: Bearer {{token}}`.
 

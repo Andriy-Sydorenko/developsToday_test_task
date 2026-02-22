@@ -1,0 +1,1018 @@
+{
+  "info": {
+    "name": "Travel Planner API (Full Interview Flow)",
+    "_postman_id": "1ddbf0f5-31e9-4a15-9c66-7d48c8f36f6f",
+    "description": "Full Postman collection for interviewer-style API verification.\n\nBase variables:\n- rootUrl: http://localhost:8000\n- baseUrl: {{rootUrl}}/api/v1\n- token: JWT (auto-set from login Set-Cookie)\n\nThis collection covers:\n- Auth (register/login/logout)\n- Users (me, update name, update password)\n- External Places proxy (list/search/get) to discover external_id inside our API\n- Projects + Project Places CRUD (happy path + edge cases)\n- Bonus: pagination/filtering\n\nRun folders top-to-bottom for a clean flow.\n",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Defaults",
+          "if (!pm.collectionVariables.get('rootUrl')) pm.collectionVariables.set('rootUrl', 'http://localhost:8000');",
+          "if (!pm.collectionVariables.get('baseUrl')) pm.collectionVariables.set('baseUrl', pm.collectionVariables.get('rootUrl') + '/api/v1');",
+          "",
+          "// Default test user (unique per run unless already set)",
+          "if (!pm.collectionVariables.get('userEmail')) {",
+          "  const email = pm.variables.replaceIn('interview+{{$timestamp}}@example.com');",
+          "  pm.collectionVariables.set('userEmail', email);",
+          "}",
+          "if (!pm.collectionVariables.get('userPassword')) pm.collectionVariables.set('userPassword', 'Password123!');",
+          "if (!pm.collectionVariables.get('userNewPassword')) pm.collectionVariables.set('userNewPassword', 'NewPassword123!');",
+          "if (!pm.collectionVariables.get('userName')) pm.collectionVariables.set('userName', 'Interview User');",
+          "",
+          "// Helper: ensure token exists for authed requests",
+          "pm.environment.set('hasToken', pm.collectionVariables.get('token') ? 'true' : 'false');"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    { "key": "rootUrl", "value": "http://localhost:8000", "type": "string" },
+    { "key": "baseUrl", "value": "http://localhost:8000/api/v1", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "userEmail", "value": "", "type": "string" },
+    { "key": "userPassword", "value": "Password123!", "type": "string" },
+    { "key": "userNewPassword", "value": "NewPassword123!", "type": "string" },
+    { "key": "userName", "value": "Interview User", "type": "string" },
+    { "key": "projectId", "value": "", "type": "string" },
+    { "key": "projectIdWithPlaces", "value": "", "type": "string" },
+    { "key": "projectIdMax", "value": "", "type": "string" },
+    { "key": "placeId1", "value": "", "type": "string" },
+    { "key": "placeId2", "value": "", "type": "string" },
+    { "key": "externalPlaceId1", "value": "", "type": "string" },
+    { "key": "externalPlaceId2", "value": "", "type": "string" },
+    { "key": "externalPlaceIdSearch", "value": "", "type": "string" },
+    { "key": "extId0", "value": "", "type": "string" },
+    { "key": "extId1", "value": "", "type": "string" },
+    { "key": "extId2", "value": "", "type": "string" },
+    { "key": "extId3", "value": "", "type": "string" },
+    { "key": "extId4", "value": "", "type": "string" },
+    { "key": "extId5", "value": "", "type": "string" },
+    { "key": "extId6", "value": "", "type": "string" },
+    { "key": "extId7", "value": "", "type": "string" },
+    { "key": "extId8", "value": "", "type": "string" },
+    { "key": "extId9", "value": "", "type": "string" },
+    { "key": "extId10", "value": "", "type": "string" },
+    { "key": "extId11", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "00 - Health",
+      "item": [
+        {
+          "name": "Health check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{rootUrl}}/",
+              "host": ["{{rootUrl}}"],
+              "path": [""]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": ["pm.response.to.have.status(200);"] }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 - Auth",
+      "item": [
+        {
+          "name": "Register (201)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\",\n  \"name\": \"{{userName}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 created', function () { pm.expect(pm.response.code).to.eql(201); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register again (400 user exists)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\",\n  \"name\": \"{{userName}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.response.to.have.status(400);",
+                  "pm.test('error message', function () {",
+                  "  pm.expect(pm.response.json().detail).to.eql('User already exists');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login (200, sets token)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.response.to.have.status(200);",
+                  "const setCookie = pm.response.headers.get('Set-Cookie') || '';",
+                  "const match = setCookie.match(/(?:^|;\\s*)token=([^;]+)/);",
+                  "pm.test('token cookie present', function () { pm.expect(match && match[1]).to.be.ok; });",
+                  "if (match && match[1]) pm.collectionVariables.set('token', match[1]);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login wrong password (401)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"wrong-password\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.response.to.have.status(401);",
+                  "pm.test('detail', function () { pm.expect(pm.response.json().detail).to.eql('Incorrect email or password'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout (204)",
+          "request": { "method": "POST", "header": [], "url": { "raw": "{{baseUrl}}/auth/logout", "host": ["{{baseUrl}}"], "path": ["auth", "logout"] } },
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.response.to.have.status(204);"] } }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 - Users",
+      "item": [
+        {
+          "name": "Me (401 without token)",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{baseUrl}}/users/me", "host": ["{{baseUrl}}"], "path": ["users", "me"] } },
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.response.to.have.status(401);"] } }
+          ]
+        },
+        {
+          "name": "Me (200)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/users/me", "host": ["{{baseUrl}}"], "path": ["users", "me"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.response.to.have.status(200);",
+                  "const json = pm.response.json();",
+                  "pm.test('has id/email', function () {",
+                  "  pm.expect(json.id).to.be.ok;",
+                  "  pm.expect(json.email).to.eql(pm.collectionVariables.get('userEmail'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update name (200)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Updated Name\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/users/me", "host": ["{{baseUrl}}"], "path": ["users", "me"] }
+          },
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.response.to.have.status(200);"] } }
+          ]
+        },
+        {
+          "name": "Update name invalid (422)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"ab\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/users/me", "host": ["{{baseUrl}}"], "path": ["users", "me"] }
+          },
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.response.to.have.status(422);"] } }
+          ]
+        },
+        {
+          "name": "Update password wrong current (400)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"WrongPass123!\",\n  \"new_password\": \"{{userNewPassword}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/users/me/password", "host": ["{{baseUrl}}"], "path": ["users", "me", "password"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.response.to.have.status(400);",
+                  "pm.test('detail', function () {",
+                  "  pm.expect(pm.response.json().detail).to.eql('Current password is incorrect');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update password same as current (400)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"{{userPassword}}\",\n  \"new_password\": \"{{userPassword}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/users/me/password", "host": ["{{baseUrl}}"], "path": ["users", "me", "password"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.response.to.have.status(400);",
+                  "pm.test('detail', function () {",
+                  "  pm.expect(pm.response.json().detail).to.eql('New password must be different');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update password success (204)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"{{userPassword}}\",\n  \"new_password\": \"{{userNewPassword}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/users/me/password", "host": ["{{baseUrl}}"], "path": ["users", "me", "password"] }
+          },
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.response.to.have.status(204);"] } }
+          ]
+        },
+        {
+          "name": "Login with old password (401)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userPassword}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          },
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.response.to.have.status(401);"] } }
+          ]
+        },
+        {
+          "name": "Login with new password (200, refresh token)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"{{userNewPassword}}\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.response.to.have.status(200);",
+                  "const setCookie = pm.response.headers.get('Set-Cookie') || '';",
+                  "const match = setCookie.match(/(?:^|;\\s*)token=([^;]+)/);",
+                  "if (match && match[1]) pm.collectionVariables.set('token', match[1]);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 - External places (inside our API)",
+      "item": [
+        {
+          "name": "List places (sets extId0..extId11)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/external/places?limit=12&page=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["external", "places"],
+              "query": [
+                { "key": "limit", "value": "12" },
+                { "key": "page", "value": "1" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.response.to.have.status(200);",
+                  "const json = pm.response.json();",
+                  "pm.test('has data array', function () { pm.expect(Array.isArray(json.data)).to.be.true; });",
+                  "for (let i = 0; i < 12 && i < json.data.length; i++) {",
+                  "  pm.collectionVariables.set('extId' + i, String(json.data[i].id));",
+                  "}",
+                  "if (json.data.length > 0) pm.collectionVariables.set('externalPlaceId1', String(json.data[0].id));",
+                  "if (json.data.length > 1) pm.collectionVariables.set('externalPlaceId2', String(json.data[1].id));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Search places (Paris) (sets externalPlaceIdSearch)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/external/places/search?q=Paris&limit=5&page=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["external", "places", "search"],
+              "query": [
+                { "key": "q", "value": "Paris" },
+                { "key": "limit", "value": "5" },
+                { "key": "page", "value": "1" }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.response.to.have.status(200);",
+                  "const json = pm.response.json();",
+                  "pm.test('has at least 1 result', function () { pm.expect(json.data.length).to.be.greaterThan(0); });",
+                  "pm.collectionVariables.set('externalPlaceIdSearch', String(json.data[0].id));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get place by id (200)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/external/places/{{externalPlaceId1}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["external", "places", "{{externalPlaceId1}}"]
+            }
+          },
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.response.to.have.status(200);"] } }
+          ]
+        },
+        {
+          "name": "Get place by id (404 not found)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/external/places/999999999",
+              "host": ["{{baseUrl}}"],
+              "path": ["external", "places", "999999999"]
+            }
+          },
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.response.to.have.status(404);"] } }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04 - Projects",
+      "item": [
+        {
+          "name": "List projects without auth (401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/projects", "host": ["{{baseUrl}}"], "path": ["projects"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.response.to.have.status(401);"] } }]
+        },
+        {
+          "name": "Create project empty places (201 sets projectId)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Project (empty places)\",\n  \"description\": \"created without places\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/projects", "host": ["{{baseUrl}}"], "path": ["projects"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.response.to.have.status(201);",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('projectId', String(json.id));",
+                  "pm.test('places empty array', function () { pm.expect(Array.isArray(json.places)).to.be.true; });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create project with 1 place (201 sets projectIdWithPlaces/placeId1)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Project (with places)\",\n  \"places\": [\n    { \"external_id\": {{externalPlaceIdSearch}}, \"notes\": \"first note\" }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/projects", "host": ["{{baseUrl}}"], "path": ["projects"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.response.to.have.status(201);",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('projectIdWithPlaces', String(json.id));",
+                  "pm.test('has places[0].id', function () { pm.expect(json.places && json.places[0] && json.places[0].id).to.be.ok; });",
+                  "if (json.places && json.places.length) pm.collectionVariables.set('placeId1', String(json.places[0].id));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create project duplicate places in request (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Project (dup places)\",\n  \"places\": [\n    { \"external_id\": {{externalPlaceId1}} },\n    { \"external_id\": {{externalPlaceId1}} }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/projects", "host": ["{{baseUrl}}"], "path": ["projects"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": { "type": "text/javascript", "exec": ["pm.response.to.have.status(400);"] }
+            }
+          ]
+        },
+        {
+          "name": "Create project with invalid external place id (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Project (invalid place)\",\n  \"places\": [\n    { \"external_id\": 999999999 }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": { "raw": "{{baseUrl}}/projects", "host": ["{{baseUrl}}"], "path": ["projects"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.response.to.have.status(400);",
+                  "pm.test('detail', function () { pm.expect(pm.response.json().detail).to.eql('Place not found in Art Institute API'); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get project not found (404)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/projects/00000000-0000-0000-0000-000000000000",
+              "host": ["{{baseUrl}}"],
+              "path": ["projects", "00000000-0000-0000-0000-000000000000"]
+            }
+          },
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.response.to.have.status(404);"] } }
+          ]
+        },
+        {
+          "name": "List projects (200 + pagination/filter)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/projects?limit=20&offset=0&q=Project",
+              "host": ["{{baseUrl}}"],
+              "path": ["projects"],
+              "query": [
+                { "key": "limit", "value": "20" },
+                { "key": "offset", "value": "0" },
+                { "key": "q", "value": "Project" }
+              ]
+            }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.response.to.have.status(200);"] } }]
+        },
+        {
+          "name": "Get project (200)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": { "raw": "{{baseUrl}}/projects/{{projectIdWithPlaces}}", "host": ["{{baseUrl}}"], "path": ["projects", "{{projectIdWithPlaces}}"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.response.to.have.status(200);"] } }]
+        },
+        {
+          "name": "Update project (200)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"description\": \"updated\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/projects/{{projectIdWithPlaces}}", "host": ["{{baseUrl}}"], "path": ["projects", "{{projectIdWithPlaces}}"] }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.response.to.have.status(200);"] } }]
+        },
+        {
+          "name": "Delete visited-blocked (mark place visited first)",
+          "item": [
+            {
+              "name": "Mark place visited (200)",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{token}}" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"visited\": true\n}", "options": { "raw": { "language": "json" } } },
+                "url": {
+                  "raw": "{{baseUrl}}/projects/{{projectIdWithPlaces}}/places/{{placeId1}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["projects", "{{projectIdWithPlaces}}", "places", "{{placeId1}}"]
+                }
+              },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.response.to.have.status(200);"] } }]
+            },
+            {
+              "name": "Delete project should fail (400)",
+              "request": {
+                "method": "DELETE",
+                "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+                "url": { "raw": "{{baseUrl}}/projects/{{projectIdWithPlaces}}", "host": ["{{baseUrl}}"], "path": ["projects", "{{projectIdWithPlaces}}"] }
+              },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.response.to.have.status(400);"] } }]
+            },
+            {
+              "name": "Unmark place visited (200)",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{token}}" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"visited\": false\n}", "options": { "raw": { "language": "json" } } },
+                "url": {
+                  "raw": "{{baseUrl}}/projects/{{projectIdWithPlaces}}/places/{{placeId1}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["projects", "{{projectIdWithPlaces}}", "places", "{{placeId1}}"]
+                }
+              }
+            },
+            {
+              "name": "Delete project success (204)",
+              "request": {
+                "method": "DELETE",
+                "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+                "url": { "raw": "{{baseUrl}}/projects/{{projectIdWithPlaces}}", "host": ["{{baseUrl}}"], "path": ["projects", "{{projectIdWithPlaces}}"] }
+              },
+              "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.response.to.have.status(204);"] } }]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05 - Project Places",
+      "item": [
+        {
+          "name": "List places without auth (401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/places",
+              "host": ["{{baseUrl}}"],
+              "path": ["projects", "{{projectId}}", "places"]
+            }
+          },
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.response.to.have.status(401);"] } }
+          ]
+        },
+        {
+          "name": "Add place to non-existent project (404)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{ \"external_id\": {{externalPlaceId1}} }", "options": { "raw": { "language": "json" } } },
+            "url": {
+              "raw": "{{baseUrl}}/projects/00000000-0000-0000-0000-000000000000/places",
+              "host": ["{{baseUrl}}"],
+              "path": ["projects", "00000000-0000-0000-0000-000000000000", "places"]
+            }
+          },
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.response.to.have.status(404);"] } }
+          ]
+        },
+        {
+          "name": "Add place to existing project (201 sets placeId2)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"external_id\": {{externalPlaceId2}},\n  \"notes\": \"second place\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/places",
+              "host": ["{{baseUrl}}"],
+              "path": ["projects", "{{projectId}}", "places"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.response.to.have.status(201);",
+                  "pm.collectionVariables.set('placeId2', String(pm.response.json().id));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add duplicate place to same project (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"external_id\": {{externalPlaceId2}}\n}", "options": { "raw": { "language": "json" } } },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/places",
+              "host": ["{{baseUrl}}"],
+              "path": ["projects", "{{projectId}}", "places"]
+            }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.response.to.have.status(400);"] } }]
+        },
+        {
+          "name": "Add place not found in AIC (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"external_id\": 999999999\n}", "options": { "raw": { "language": "json" } } },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/places",
+              "host": ["{{baseUrl}}"],
+              "path": ["projects", "{{projectId}}", "places"]
+            }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.response.to.have.status(400);"] } }]
+        },
+        {
+          "name": "List places (200 + filter visited=false)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/places?limit=50&offset=0&visited=false",
+              "host": ["{{baseUrl}}"],
+              "path": ["projects", "{{projectId}}", "places"],
+              "query": [
+                { "key": "limit", "value": "50" },
+                { "key": "offset", "value": "0" },
+                { "key": "visited", "value": "false" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get place (200)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/places/{{placeId2}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["projects", "{{projectId}}", "places", "{{placeId2}}"]
+            }
+          }
+        },
+        {
+          "name": "Get place not found (404)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/places/00000000-0000-0000-0000-000000000000",
+              "host": ["{{baseUrl}}"],
+              "path": ["projects", "{{projectId}}", "places", "00000000-0000-0000-0000-000000000000"]
+            }
+          },
+          "event": [
+            { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.response.to.have.status(404);"] } }
+          ]
+        },
+        {
+          "name": "Update place notes (200)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"notes\": \"updated notes\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": {
+              "raw": "{{baseUrl}}/projects/{{projectId}}/places/{{placeId2}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["projects", "{{projectId}}", "places", "{{placeId2}}"]
+            }
+          }
+        },
+        {
+          "name": "Mark visited + verify project completion",
+          "item": [
+            {
+              "name": "Mark place visited (200)",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Authorization", "value": "Bearer {{token}}" },
+                  { "key": "Content-Type", "value": "application/json" }
+                ],
+                "body": { "mode": "raw", "raw": "{\n  \"visited\": true\n}", "options": { "raw": { "language": "json" } } },
+                "url": {
+                  "raw": "{{baseUrl}}/projects/{{projectId}}/places/{{placeId2}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["projects", "{{projectId}}", "places", "{{placeId2}}"]
+                }
+              }
+            },
+            {
+              "name": "Get project should be completed if only place (200)",
+              "request": {
+                "method": "GET",
+                "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
+                "url": { "raw": "{{baseUrl}}/projects/{{projectId}}", "host": ["{{baseUrl}}"], "path": ["projects", "{{projectId}}"] }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.response.to.have.status(200);",
+                      "const json = pm.response.json();",
+                      "pm.test('project has is_completed boolean', function () { pm.expect(typeof json.is_completed).to.eql('boolean'); });"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "06 - Limits (max 10 places per project)",
+      "item": [
+        {
+          "name": "Create project for max test (201 sets projectIdMax)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Project (max places test)\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/projects", "host": ["{{baseUrl}}"], "path": ["projects"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.response.to.have.status(201);",
+                  "pm.collectionVariables.set('projectIdMax', String(pm.response.json().id));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add place #1",
+          "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"external_id\": {{extId0}} }", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/projects/{{projectIdMax}}/places", "host": ["{{baseUrl}}"], "path": ["projects", "{{projectIdMax}}", "places"] } }
+        },
+        {
+          "name": "Add place #2",
+          "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"external_id\": {{extId1}} }", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/projects/{{projectIdMax}}/places", "host": ["{{baseUrl}}"], "path": ["projects", "{{projectIdMax}}", "places"] } }
+        },
+        {
+          "name": "Add place #3",
+          "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"external_id\": {{extId2}} }", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/projects/{{projectIdMax}}/places", "host": ["{{baseUrl}}"], "path": ["projects", "{{projectIdMax}}", "places"] } }
+        },
+        {
+          "name": "Add place #4",
+          "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"external_id\": {{extId3}} }", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/projects/{{projectIdMax}}/places", "host": ["{{baseUrl}}"], "path": ["projects", "{{projectIdMax}}", "places"] } }
+        },
+        {
+          "name": "Add place #5",
+          "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"external_id\": {{extId4}} }", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/projects/{{projectIdMax}}/places", "host": ["{{baseUrl}}"], "path": ["projects", "{{projectIdMax}}", "places"] } }
+        },
+        {
+          "name": "Add place #6",
+          "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"external_id\": {{extId5}} }", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/projects/{{projectIdMax}}/places", "host": ["{{baseUrl}}"], "path": ["projects", "{{projectIdMax}}", "places"] } }
+        },
+        {
+          "name": "Add place #7",
+          "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"external_id\": {{extId6}} }", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/projects/{{projectIdMax}}/places", "host": ["{{baseUrl}}"], "path": ["projects", "{{projectIdMax}}", "places"] } }
+        },
+        {
+          "name": "Add place #8",
+          "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"external_id\": {{extId7}} }", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/projects/{{projectIdMax}}/places", "host": ["{{baseUrl}}"], "path": ["projects", "{{projectIdMax}}", "places"] } }
+        },
+        {
+          "name": "Add place #9",
+          "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"external_id\": {{extId8}} }", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/projects/{{projectIdMax}}/places", "host": ["{{baseUrl}}"], "path": ["projects", "{{projectIdMax}}", "places"] } }
+        },
+        {
+          "name": "Add place #10",
+          "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"external_id\": {{extId9}} }", "options": { "raw": { "language": "json" } } }, "url": { "raw": "{{baseUrl}}/projects/{{projectIdMax}}/places", "host": ["{{baseUrl}}"], "path": ["projects", "{{projectIdMax}}", "places"] } }
+        },
+        {
+          "name": "Add place #11 should fail (400 max 10)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{ \"external_id\": {{extId10}} }", "options": { "raw": { "language": "json" } } },
+            "url": { "raw": "{{baseUrl}}/projects/{{projectIdMax}}/places", "host": ["{{baseUrl}}"], "path": ["projects", "{{projectIdMax}}", "places"] }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.response.to.have.status(400);",
+                  "pm.test('max places message', function () {",
+                  "  pm.expect(pm.response.json().detail).to.include('Maximum 10 places per project');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+

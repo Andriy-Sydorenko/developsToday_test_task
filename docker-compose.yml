@@ -2,16 +2,10 @@ services:
   api:
     build:
       context: .
+    env_file:
+      - .env
     ports:
-      - "8000:8000"
-    environment:
-      PORT: "8000"
-      DATABASE_URL: "sqlite+aiosqlite:///./data/app.db"
-      JWT_SECRET: "dev-secret"
-      IS_PRODUCTION: "false"
-      ARTIC_CACHE_ENABLED: "true"
-      ARTIC_CACHE_TTL_SECONDS: "300"
-      ARTIC_CACHE_MAX_ENTRIES: "1024"
+      - "${PORT:-8000}:${PORT:-8000}"
     volumes:
       - api_data:/app/data
 

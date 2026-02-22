@@ -26,6 +26,7 @@ RUN addgroup --system --gid 10001 app && \
 COPY --from=builder /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
 
+COPY pyproject.toml ./pyproject.toml
 COPY alembic.ini ./alembic.ini
 COPY alembic ./alembic
 COPY app ./app

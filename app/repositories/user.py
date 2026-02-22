@@ -10,8 +10,12 @@ class UserRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def get_by_id(self, user_id: str) -> User | None:
-        result = await self.session.execute(select(User).where(User.id == UUID(user_id)))
+    @staticmethod
+    def _as_uuid(value: str | UUID) -> UUID:
+        return value if isinstance(value, UUID) else UUID(value)
+
+    async def get_by_id(self, user_id: str | UUID) -> User | None:
+        result = await self.session.execute(select(User).where(User.id == self._as_uuid(user_id)))
         return result.scalars().first()
 
     async def get_by_email(self, email: str) -> User | None:
